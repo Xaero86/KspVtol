@@ -12,10 +12,18 @@ namespace KspVtol
         private Rect _windowRect = Rect.zero;
         private Vector2 _size = new Vector2(500, 200);
         private bool _isDisplayed = false;
+        public bool IsDisplayed
+        {
+            get { return _isDisplayed; }
+            set
+            {
+                _isDisplayed = value;
+                UpdateSelector(false);
+            }
+        }
         public void ToggleDisplay()
         {
-            _isDisplayed = !_isDisplayed;
-            UpdateSelector(false);
+            IsDisplayed = !_isDisplayed;
         }
         
         private Rect _boxPos = Rect.zero;
@@ -33,6 +41,19 @@ namespace KspVtol
         private static string TF_NAME_V_SPEED_MAX = "vSpeedMaxTF";
         private static string TF_NAME_PITCH_MAX = "pitchMaxTF";
         private static string TF_NAME_ROLL_MAX = "rollMaxTF";
+        
+        /*private string _vkp = "";
+        private string _vki = "";
+        private string _vkd = "";
+        private string _akp = "";
+        private string _aki = "";
+        private string _akd = "";
+        private static string TF_NAME_V_KP = "vkp";
+        private static string TF_NAME_V_KI = "vki";
+        private static string TF_NAME_V_KD = "vkd";
+        private static string TF_NAME_A_KP = "akp";
+        private static string TF_NAME_A_KI = "aki";
+        private static string TF_NAME_A_KD = "akd";*/
         
         public ConfigUI(Vector2 pos)
         {
@@ -63,6 +84,7 @@ namespace KspVtol
             
             float labelWidth = GUI.skin.label.CalcSize(new GUIContent("XXXXXXXXXXXX")).x;
             float labelWidth2 = GUI.skin.label.CalcSize(new GUIContent("XXXXXXX")).x;
+            float labelWidth3 = GUI.skin.label.CalcSize(new GUIContent("XXX")).x;
             List<PartElement> removed = new List<PartElement>();
             
             GUILayout.BeginVertical();
@@ -135,6 +157,33 @@ namespace KspVtol
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             
+            /*GUILayout.BeginHorizontal();
+            GUILayout.Label("v");
+            GUI.SetNextControlName(TF_NAME_V_KP);
+            _vkp = GUILayout.TextField(_vkp, 5, GUILayout.Width(labelWidth3));
+            GUI.SetNextControlName(TF_NAME_V_KI);
+            _vki = GUILayout.TextField(_vki, 5, GUILayout.Width(labelWidth3));
+            GUI.SetNextControlName(TF_NAME_V_KD);
+            _vkd = GUILayout.TextField(_vkd, 5, GUILayout.Width(labelWidth3));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("a");
+            GUI.SetNextControlName(TF_NAME_A_KP);
+            _akp = GUILayout.TextField(_akp, 5, GUILayout.Width(labelWidth3));
+            GUI.SetNextControlName(TF_NAME_A_KI);
+            _aki = GUILayout.TextField(_aki, 5, GUILayout.Width(labelWidth3));
+            GUI.SetNextControlName(TF_NAME_A_KD);
+            _akd = GUILayout.TextField(_akd, 5, GUILayout.Width(labelWidth3));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();*/
+            
+            GUILayout.BeginHorizontal();
+            _core.useDiffThrust = GUILayout.Toggle(_core.useDiffThrust, "Diff. thrust");
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
@@ -160,6 +209,49 @@ namespace KspVtol
                 } catch (FormatException) {}
                 _rollMax = _core.rollMax.ToString();
             }
+            
+            /*if (GUI.GetNameOfFocusedControl() != TF_NAME_V_KP)
+            {
+                try {
+                    _core.vPidKp = float.Parse(_vkp);
+                } catch (FormatException) {}
+                _vkp = _core.vPidKp.ToString();
+            }
+            if (GUI.GetNameOfFocusedControl() != TF_NAME_V_KI)
+            {
+                try {
+                    _core.vPidKi = float.Parse(_vki);
+                } catch (FormatException) {}
+                _vki = _core.vPidKi.ToString();
+            }
+            if (GUI.GetNameOfFocusedControl() != TF_NAME_V_KD)
+            {
+                try {
+                    _core.vPidKd = float.Parse(_vkd);
+                } catch (FormatException) {}
+                _vkd = _core.vPidKd.ToString();
+            }
+            if (GUI.GetNameOfFocusedControl() != TF_NAME_A_KP)
+            {
+                try {
+                    _core.aPidKp = float.Parse(_akp);
+                } catch (FormatException) {}
+                _akp = _core.aPidKp.ToString();
+            }
+            if (GUI.GetNameOfFocusedControl() != TF_NAME_A_KI)
+            {
+                try {
+                    _core.aPidKi = float.Parse(_aki);
+                } catch (FormatException) {}
+                _aki = _core.aPidKi.ToString();
+            }
+            if (GUI.GetNameOfFocusedControl() != TF_NAME_A_KD)
+            {
+                try {
+                    _core.aPidKd = float.Parse(_akd);
+                } catch (FormatException) {}
+                _akd = _core.aPidKd.ToString();
+            }*/
             
             foreach (PartElement partElem in removed)
             {

@@ -12,6 +12,9 @@ namespace KspVtol
         private MainVtol _mainVtol = null;
         public MainVtol mainVtol { set { _mainVtol = value; } }
         
+        private bool _vFree = false;
+        private bool _aFree = false;
+        
         public CommandUI(Vector2 pos)
         {
             _windowRect = new Rect(pos, _size);
@@ -31,9 +34,15 @@ namespace KspVtol
         private void DoWindow(int windowID)
         {
             if (Input.GetMouseButtonUp(0)) {
-                _core.commandVSpeed = 0.0f;
-                _core.commandPitch = 0.0f;
-                _core.commandRoll = 0.0f;
+                if (!_vFree)
+                {
+                    _core.requestedVSpeed = 0.0f;
+                }
+                if (!_aFree)
+                {
+                    _core.requestedPitch = 0.0f;
+                    _core.requestedRoll = 0.0f;
+                }
             }
             
             GUILayout.BeginVertical();
@@ -44,6 +53,11 @@ namespace KspVtol
                 _mainVtol.ToggleConf();
             }
             GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Info"))
+            {
+                _mainVtol.ToggleInfo();
+            }
+            GUILayout.FlexibleSpace();
             _core.active = GUILayout.Toggle(_core.active, "Activate");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
@@ -52,24 +66,23 @@ namespace KspVtol
             GUILayout.FlexibleSpace();
             _core.activeVSpeed = GUILayout.Toggle(_core.activeVSpeed, "Vertical");
             GUILayout.FlexibleSpace();
+            _vFree = GUILayout.Toggle(_vFree, "vFree");
+            GUILayout.FlexibleSpace();
             _core.activeAttitude = GUILayout.Toggle(_core.activeAttitude, "Attitude");
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Info"))
-            {
-                _mainVtol.ToggleInfo();
-            }
+            _aFree = GUILayout.Toggle(_aFree, "aFree");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
-            _core.commandVSpeed = GUILayout.VerticalSlider(_core.commandVSpeed, _core.verticalMax, -_core.verticalMax);
+            _core.requestedVSpeed = GUILayout.VerticalSlider(_core.requestedVSpeed, _core.verticalMax, -_core.verticalMax);
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            _core.commandPitch = GUILayout.VerticalSlider(_core.commandPitch, _core.pitchMax, -_core.pitchMax);
+            _core.requestedPitch = GUILayout.VerticalSlider(_core.requestedPitch, _core.pitchMax, -_core.pitchMax);
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
-            _core.commandRoll = GUILayout.HorizontalSlider(_core.commandRoll, -_core.rollMax, _core.rollMax);
+            _core.requestedRoll = GUILayout.HorizontalSlider(_core.requestedRoll, -_core.rollMax, _core.rollMax);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
             

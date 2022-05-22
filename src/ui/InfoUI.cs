@@ -7,39 +7,87 @@ namespace KspVtol
     public class InfoUI
     {
         private Rect _windowRect = Rect.zero;
-        private Vector2 _size = new Vector2(500, 300);
+        private Vector2 _size = new Vector2(300, 150);
         private bool _isDisplayed = false;
+        public bool IsDisplayed
+        {
+            get { return _isDisplayed; }
+            set
+            {
+                _isDisplayed = value;
+                foreach(GameObject objLine in _lines.Values)
+                {
+                    objLine.SetActive(_isDisplayed);
+                    if (_isDisplayed)
+                    {
+                        LineRenderer line = objLine.GetComponent<LineRenderer>(); 
+                        line.transform.parent = FlightGlobals.ActiveVessel.transform;
+                        line.transform.localPosition = Vector3.zero;
+                        line.transform.localEulerAngles = Vector3.zero; 
+                    }
+                }
+            }
+        }
+        public void ToggleDisplay()
+        {
+            IsDisplayed = !_isDisplayed;
+        }
         private Rect _boxPos = Rect.zero;
         private Vector2 _scrollConfVector = Vector2.zero;
         
         public delegate Tuple<string,string> InfoHandler();
         private List<InfoHandler> _infoList = new List<InfoHandler>();
+        
         public void AddInfo(InfoHandler handler)
         {
             _infoList.Add(handler);
         }
         
-        private GameObject _objLine = null;
-        private LineRenderer _line = null;
-        private Vector3 _lineOrientation = Vector3.zero;
-        public Vector3 lineOrientation { set { _lineOrientation = value; } }
+        private Dictionary<string,GameObject> _lines = new Dictionary<string,GameObject>();
+        
+        public void CreateInfoLine(string name, Color color)
+        {
+            if (!_lines.ContainsKey(name))
+            {
+                GameObject objLine = new GameObject("DebugLine"+name);
+                LineRenderer line = objLine.AddComponent<LineRenderer>();
+                line.useWorldSpace = false;
+                if (_lineMaterial != null)
+                {
+                    line.material = _lineMaterial;
+                    line.material.color = color;
+                }
+                line.startColor = color;
+                line.endColor = color;
+                line.startWidth = 1.0f;
+                line.endWidth = 0.0f;
+                line.positionCount = 2;
+                line.SetPosition(0, Vector3.zero);
+                line.SetPosition(1, Vector3.zero);
+                objLine.SetActive(false);
+                
+                _lines.Add(name, objLine);
+            }
+        }
+        
+        public void DisplayInfoLine(string name, Vector3 direction)
+        {
+            GameObject objLine = null;
+            
+            if (_lines.TryGetValue(name, out objLine) && (objLine != null))
+            {
+                LineRenderer line = objLine.GetComponent<LineRenderer>();
+                line.SetPosition(1, direction.normalized * 5);
+            }
+        }
+        
+        private Material _lineMaterial = null;
         
         public InfoUI(Vector2 pos)
         {
             _windowRect = new Rect(pos, _size);
             
-            _objLine = new GameObject( "Line" );
-            _line = _objLine.AddComponent<LineRenderer>();
-            _line.useWorldSpace = false;
-
-            _line.startColor = Color.red;
-            _line.endColor = Color.yellow;
-            _line.startWidth = 1.0f;
-            _line.endWidth = 0.0f;
-            _line.positionCount = 2;
-            _line.SetPosition( 0, Vector3.zero );
-            _line.SetPosition( 1, Vector3.up * 5 );
-            _objLine.SetActive(false);
+            _lineMaterial = new Material(Shader.Find("Diffuse"));
         }
         
         public void Display()
@@ -48,22 +96,6 @@ namespace KspVtol
             {
                 _windowRect.size = _size;
                 _windowRect = GUI.Window(GUIUtility.GetControlID(FocusType.Keyboard), _windowRect, DoWindow, "Information");
-            }
-        }
-        
-        public void ToggleDisplay()
-        {
-            _isDisplayed = !_isDisplayed;
-            if (_isDisplayed)
-            {
-                _line.transform.parent = FlightGlobals.ActiveVessel.transform;
-                _line.transform.localPosition = Vector3.zero;
-                _line.transform.localEulerAngles = Vector3.zero; 
-                _objLine.SetActive(true);
-            }
-            else
-            {
-                _objLine.SetActive(false);
             }
         }
         
@@ -109,14 +141,6 @@ namespace KspVtol
             GUILayout.EndVertical();
             
             GUI.DragWindow(new Rect(0, 0, 10000, 10000));
-        }
-        
-        public void Update()
-        {
-            if (_isDisplayed)
-            {
-                _line.SetPosition( 1, _lineOrientation.normalized * 5 );
-            }
         }
     }
 }

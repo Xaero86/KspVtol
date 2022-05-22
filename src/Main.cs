@@ -10,7 +10,7 @@ namespace KspVtol
     public class MainVtol : MonoBehaviour
     {
         public const string DEBUG_PREFIX = "[Vtol] ";
-        private static string ICONE_FILE_NAME = "button.png";
+        private static string ICON_FILE_NAME = "button.png";
         private static string ADDON_BASE_PATH = null;
         private static string ICON_FILE = null;
         private static Texture2D TEXTURE_BUTTON = null;
@@ -32,7 +32,7 @@ namespace KspVtol
             {
                 TEXTURE_BUTTON = new Texture2D(1, 1);
                 ADDON_BASE_PATH = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..");
-                ICON_FILE = Path.Combine(ADDON_BASE_PATH, ICONE_FILE_NAME);
+                ICON_FILE = Path.Combine(ADDON_BASE_PATH, ICON_FILE_NAME);
                 try {
                     byte[] bytes = File.ReadAllBytes(ICON_FILE);
                     TEXTURE_BUTTON.LoadImage(bytes);
@@ -79,14 +79,11 @@ namespace KspVtol
                 _configUI.Display();
                 _commandUI.Display();
             }
-        }
-        
-        public void Update()
-        {
-            if (_infoUI != null)
+            else
             {
-                _infoUI.Update();
-            }
+                _configUI.IsDisplayed = false;
+                _infoUI.IsDisplayed = false;
+            }   
         }
         
         public void ToggleConf()

@@ -40,10 +40,17 @@ namespace KspVtol
             set { _isAirplane = !value; }
         }
         
+        private bool _useDiffThrust = true;
+        public bool useDiffThrust
+        {
+            get { return _useDiffThrust; }
+            set { _useDiffThrust = value; }
+        }
+        
         private List<PartElement> _partsList = new List<PartElement>();
         public List<PartElement> PartsList { get { return _partsList;} }
         
-        public void AddPart(Part part, bool active, float throttleP, float pitchP, float rollP)
+        public void AddPart(Part part)
         {
             foreach (PartElement partElem in _partsList)
             {
@@ -53,8 +60,6 @@ namespace KspVtol
             if (newElement.IsValid())
             {
                 _partsList.Add(newElement);
-                newElement.Activate(active);
-                newElement.SetCommand(throttleP, pitchP, rollP, _isAirplane);
             }
         }
         
@@ -76,7 +81,14 @@ namespace KspVtol
         {
             foreach (PartElement partElem in _partsList)
             {
-                partElem.SetCommand(throttleP, pitchP, rollP, _isAirplane);
+                if (_useDiffThrust)
+                {
+                    partElem.SetCommand(throttleP, pitchP, rollP, _isAirplane);
+                }
+                else
+                {
+                    partElem.SetCommand(throttleP, 0.0f, 0.0f, _isAirplane);
+                }
             }
         }
     }
@@ -150,8 +162,6 @@ namespace KspVtol
             
             if ((pitchP != 0.0f) || (rollP != 0.0f))
             {
-                // x,y,z : avion: y = pos avant/arriere (pitch), x = pos gauche/droite (roll), z = hauteur
-                // x,y,z : fusee: y = hauteur, x = pos avant/arriere (pitch), z = pos gauche/droite (roll)
                 Vessel vessel = FlightGlobals.ActiveVessel;
                 Vector3 posCoM = vessel.transform.InverseTransformPoint(vessel.CoM);
                 
@@ -182,26 +192,26 @@ namespace KspVtol
                 }
                 else
                 {
-                    if (Math.Abs(_position.x - posCoM.x) > 0.5f)
-                    {
-                        if (_position.x > posCoM.x)
-                        {
-                            inputCmd -= pitchP;
-                        }
-                        else
-                        {
-                            inputCmd += pitchP;
-                        }
-                    }
                     if (Math.Abs(_position.z - posCoM.z) > 0.5f)
                     {
                         if (_position.z > posCoM.z)
                         {
-                            inputCmd += rollP;
+                            inputCmd += pitchP;
                         }
                         else
                         {
+                            inputCmd -= pitchP;
+                        }
+                    }
+                    if (Math.Abs(_position.x - posCoM.x) > 0.5f)
+                    {
+                        if (_position.x > posCoM.x)
+                        {
                             inputCmd -= rollP;
+                        }
+                        else
+                        {
+                            inputCmd += rollP;
                         }
                     }
                 }

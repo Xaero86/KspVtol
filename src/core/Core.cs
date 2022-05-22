@@ -9,10 +9,42 @@ namespace KspVtol
         public Core()
         {
             FlightGlobals.ActiveVessel.OnFlyByWire += new FlightInputCallback(InputCallback);
-            _pidCtrlAttitude = new PidController(12, 10, 20);
+            _pidCtrlVSpeed = new PidController(1.0f, 5.0f, 0.0f, 0.0f, 1.0f);
+            _pidCtrlAttitude = new PidController(12.0f, 10.0f, 20.0f);
         }
         
+        private PidController _pidCtrlVSpeed;
+        public float vPidKp
+        {
+            get { return _pidCtrlVSpeed.kp; }
+            set { _pidCtrlVSpeed.kp = value; }
+        }
+        public float vPidKi
+        {
+            get { return _pidCtrlVSpeed.ki; }
+            set { _pidCtrlVSpeed.ki = value; }
+        }
+        public float vPidKd
+        {
+            get { return _pidCtrlVSpeed.kd; }
+            set { _pidCtrlVSpeed.kd = value; }
+        }
         private PidController _pidCtrlAttitude;
+        public float aPidKp
+        {
+            get { return _pidCtrlAttitude.kp; }
+            set { _pidCtrlAttitude.kp = value; }
+        }
+        public float aPidKi
+        {
+            get { return _pidCtrlAttitude.ki; }
+            set { _pidCtrlAttitude.ki = value; }
+        }
+        public float aPidKd
+        {
+            get { return _pidCtrlAttitude.kd; }
+            set { _pidCtrlAttitude.kd = value; }
+        }
         
         private InfoUI _infoUI = null;
         public InfoUI InfoUI
@@ -22,36 +54,29 @@ namespace KspVtol
                 _infoUI = value;
                 if (_infoUI != null)
                 {
-                    _infoUI.AddInfo(() => Tuple.Create("eulerAngles.x : ",String.Format("{0:0.0000}", scaleAngle(_srfRotation.eulerAngles.x))));
-                    _infoUI.AddInfo(() => Tuple.Create("eulerAngles.y : ",String.Format("{0:0.0000}", scaleAngle(_srfRotation.eulerAngles.y))));
-                    _infoUI.AddInfo(() => Tuple.Create("eulerAngles.z : ",String.Format("{0:0.0000}", scaleAngle(_srfRotation.eulerAngles.z))));
-/*                    _infoUI.AddInfo(() => Tuple.Create("error.x : ",String.Format("{0:0.0000}", _error.x)));
-                    _infoUI.AddInfo(() => Tuple.Create("error.y : ",String.Format("{0:0.0000}", _error.y)));
-                    _infoUI.AddInfo(() => Tuple.Create("error.z : ",String.Format("{0:0.0000}", _error.z)));
-*/
-                    _infoUI.AddInfo(() => Tuple.Create("command.x : ",String.Format("{0:0.0000}", _command.x)));
-                    _infoUI.AddInfo(() => Tuple.Create("command.y : ",String.Format("{0:0.0000}", _command.y)));
-                    _infoUI.AddInfo(() => Tuple.Create("command.z : ",String.Format("{0:0.0000}", _command.z)));
-
-                    _infoUI.AddInfo(() => Tuple.Create("_throttleCmd : ",String.Format("{0:0.0000}", _throttleCmd)));
+                    _infoUI.AddInfo(() => Tuple.Create("current VSpeed : ",String.Format("{0:0.0000}", _currentVSpeed)));
+                    _infoUI.AddInfo(() => Tuple.Create("Current pitch : ",String.Format("{0:0.0000}", _currentPitch)));
+                    _infoUI.AddInfo(() => Tuple.Create("Current roll : ",String.Format("{0:0.0000}", _currentRoll)));
+                    
+                    _infoUI.CreateInfoLine("refVessel", Color.blue);
+                    _infoUI.CreateInfoLine("pitchAxis", Color.red);
+                    _infoUI.CreateInfoLine("rollAxis", Color.green);
+                    _infoUI.CreateInfoLine("requestedUp", Color.white);
                 }
             }
         }
         
-        // log Temp
-        private Quaternion _srfRotation = Quaternion.identity;
-        private Vector3 _command = Vector3.zero;
-        private Vector3 _error = Vector3.zero;
-        
-        
-        private float _throttleCmd = 0.0f;
-        private float _pitchCmd = 0.0f;
-        private float _rollCmd = 0.0f;
+        private float _currentVSpeed = 0.0f;
+        private float _currentPitch = 0.0f;
+        private float _currentRoll = 0.0f;
         
         private Config _config = new Config();
         public void AddPart(Part part)
         {
-            _config.AddPart(part, _active, _throttleCmd, _pitchCmd, _rollCmd);
+            if (!_active)
+            {
+                _config.AddPart(part);
+            }
         }
         
         public void RemovePart(PartElement partElem)
@@ -99,6 +124,12 @@ namespace KspVtol
             set { _config.isRocket = value; }
         }
         
+        public bool useDiffThrust
+        {
+            get { return _config.useDiffThrust; }
+            set { _config.useDiffThrust = value; }
+        }
+        
         private bool _active = false;
         public bool active
         {
@@ -125,276 +156,152 @@ namespace KspVtol
             set { _activeAttitude = value; }
         }
         
-        private float _commandVSpeed = 0.0f;
-        public float commandVSpeed
+        private float _requestedVSpeed = 0.0f;
+        public float requestedVSpeed
         {
-            get { return _commandVSpeed; }
+            get { return _requestedVSpeed; }
             set
             {
                 if (!_active || !_activeVSpeed) return;
-                _commandVSpeed = value;
+                if (_requestedVSpeed != value)
+                {
+                    _pidCtrlVSpeed.ResetPID();
+                }
+                _requestedVSpeed = value;
             }
         }
         
-        private float _commandPitch = 0.0f;
-        public float commandPitch
+        private float _requestedPitch = 0.0f;
+        public float requestedPitch
         {
-            get { return _commandPitch; }
+            get { return _requestedPitch; }
             set
             {
                 if (!_active || !_activeAttitude) return;
-                if (_commandPitch != value)
+                if (_requestedPitch != value)
                 {
                     _pidCtrlAttitude.ResetPID();
                 }
-                _commandPitch = value;
+                _requestedPitch = value;
             }
         }
         
-        private float _commandRoll = 0.0f;
-        public float commandRoll
+        private float _requestedRoll = 0.0f;
+        public float requestedRoll
         {
-            get { return _commandRoll; }
+            get { return _requestedRoll; }
             set
             {
                 if (!_active || !_activeAttitude) return;
-                if (_commandRoll != value)
+                if (_requestedRoll != value)
                 {
                     _pidCtrlAttitude.ResetPID();
                 }
-                _commandRoll = value;
+                _requestedRoll = value;
             }
         }
 
-        private double _previousCompute = 0.0;
-        private double _previousPitch = 0.0;
-        private double _previousRoll = 0.0;
-        
-        private static double V_SPEED_MIN_STEP = 0.5;
-        private static double PITCH_MIN_STEP = 0.5;
-        private static double ROLL_MIN_STEP = 0.5;
-        
-        private static double scaleAngle(double angle)
-        {
-            return (angle > 180.0f) ? (360.0f - angle) : -angle;
-        }
-        
         public void InputCallback(FlightCtrlState fcs)
         {
             if (!_active)
             {
+                _pidCtrlVSpeed.ResetPID();
                 _pidCtrlAttitude.ResetPID();
                 return;
             }
             
             Vessel vessel = FlightGlobals.ActiveVessel;
             
+            float throttleCmd = 0.0f;
+            float pitchCmd = 0.0f;
+            float rollCmd = 0.0f;
+            
+            _currentVSpeed = Vector3.Dot(vessel.velocityD, vessel.up);
+            
             if (_activeVSpeed)
             {
-                double verticalSpeed = Vector3d.Dot(vessel.velocityD, vessel.up);
-                double verticalAcceleration = Vector3d.Dot(vessel.acceleration, vessel.up);
-                double correction = _commandVSpeed - verticalSpeed;
-
-                if (correction > V_SPEED_MIN_STEP) {
-                    if (verticalAcceleration <= -1.0) {
-                        _throttleCmd += 10.00f;
-                    } else if (verticalAcceleration <= 0.0) {
-                        _throttleCmd += 5.00f;
-                    }
-                } else if (correction < -V_SPEED_MIN_STEP) {
-                    if (verticalAcceleration >= 0) {
-                        _throttleCmd = 0.0f;
-                    }
-                }
+                float errorV = _requestedVSpeed - _currentVSpeed;
+                Vector3 commandV = _pidCtrlVSpeed.Compute(new Vector3(0.0f,errorV,0.0f));
+                throttleCmd = 100.0f * commandV.y;
             }
             else
             {
-                _throttleCmd = 0.0f;
+                _pidCtrlVSpeed.ResetPID();
+            }
+            
+            Vector3 refVessel = Vector3.zero;
+            Vector3 pitchAxis = Vector3.zero;
+            Vector3 rollAxis = Vector3.zero;
+            if (_config.isAirplane)
+            {
+                refVessel = -Vector3.forward;
+                pitchAxis = Vector3.right;
+                rollAxis = Vector3.up;
+            }
+            else
+            {
+                refVessel = Vector3.up;
+                pitchAxis = Vector3.right;
+                rollAxis = Vector3.forward;
+            }
+
+            Vector3 localUp = vessel.transform.InverseTransformDirection(vessel.up).normalized;
+            Quaternion qPitch = Quaternion.AngleAxis(_requestedPitch, pitchAxis);
+            Quaternion qRoll = Quaternion.AngleAxis(-_requestedRoll, rollAxis);
+            Vector3 requestedUp = qPitch * qRoll * localUp;
+            
+            if (_infoUI != null)
+            {
+                Vector3 currentPitchV = Vector3.ProjectOnPlane(localUp, pitchAxis);
+                _currentPitch = Vector3.SignedAngle(currentPitchV, refVessel, pitchAxis);
+                Vector3 currentRollV = Vector3.ProjectOnPlane(localUp, rollAxis);
+                _currentRoll = Vector3.SignedAngle(currentRollV, refVessel, rollAxis);
+                _infoUI.DisplayInfoLine("refVessel", refVessel);
+                _infoUI.DisplayInfoLine("pitchAxis", pitchAxis);
+                _infoUI.DisplayInfoLine("rollAxis", rollAxis);
+                _infoUI.DisplayInfoLine("requestedUp", requestedUp);
             }
             
             if (_activeAttitude)
             {
-                Vector3 heading = vessel.up;
-                Vector3 refVessel = Vector3.zero;
+                Vector3 errorA = requestedUp - refVessel;
+                Vector3 commandA = _pidCtrlAttitude.Compute(errorA);
                 if (_config.isAirplane)
                 {
-                    refVessel = Vector3.back;
+                    // SAS cmd
+                    fcs.pitch = -commandA.y;
+                    fcs.roll = commandA.x;
+                    // Differential thrust
+                    pitchCmd = -commandA.y;
+                    rollCmd = commandA.x;
                 }
                 else
                 {
-                    refVessel = Vector3.up;
+                    // SAS cmd
+                    fcs.pitch = -commandA.z;
+                    fcs.yaw = commandA.x;
+                    // Differential thrust
+                    pitchCmd = -commandA.z;
+                    rollCmd = commandA.x;
                 }
-
-                Vector3d north = Vector3.ProjectOnPlane((vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - vessel.CoMD, vessel.up).normalized;
-                Quaternion srfRotation = Quaternion.Inverse(Quaternion.Euler(90.0f, 0.0f, 0.0f) * Quaternion.Inverse(vessel.transform.rotation) * Quaternion.LookRotation(north, vessel.up));
-                
-                _srfRotation = srfRotation;
-                
-                Quaternion qPitch = Quaternion.AngleAxis(-_commandPitch, srfRotation * Vector3.right);
-                Quaternion qRoll = Quaternion.AngleAxis(-_commandRoll, srfRotation * Vector3.forward);
-                heading = qPitch * qRoll * vessel.up;
-                //heading = qPitch * qRoll * srfRotation * Vector3.up;
-                
-                Vector3 error = vessel.transform.InverseTransformDirection(heading).normalized - refVessel;
-                _error = error;
-                if (_infoUI != null)
-                {
-                    _infoUI.lineOrientation = error;
-                }
-                Vector3 command = _pidCtrlAttitude.Compute(error);
-                
-                _command = command;
-                
-                if (_config.isAirplane)
-                {
-                    fcs.pitch = -command.y;
-                    fcs.roll = command.x;
-                }
-                else
-                {
-                    fcs.pitch = -command.z;
-                    fcs.yaw = command.x;
-                }
-                
-                /*double currentTime = Time.time;
-                Vector3d north = Vector3.ProjectOnPlane((vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - vessel.CoMD, vessel.up).normalized;
-                Quaternion srfRotation = Quaternion.Inverse(Quaternion.Euler(90.0f, 0.0f, 0.0f) * Quaternion.Inverse(vessel.transform.rotation) * Quaternion.LookRotation(north, vessel.up));
-                
-                double pitch = 0.0;
-                double roll = 0.0;
-                // Avion: heading = eulerY ; pitch = eulerX ; roll = eulerZ
-                // fusee: heading = eulerZ ; pitch = eulerX ; roll = eulerY
-                if (_config.isAirplane)
-                {
-                    pitch = scaleAngle(srfRotation.eulerAngles.x);
-                    roll = scaleAngle(srfRotation.eulerAngles.z);
-                }
-                else
-                {
-                    pitch = scaleAngle(srfRotation.eulerAngles.x) - 90.0;
-                    roll = scaleAngle(srfRotation.eulerAngles.y);
-                }
-                
-                if ((_previousCompute != 0.0) && (_previousCompute != currentTime))
-                {
-                    double pitchSpeed = (pitch - _previousPitch) / (currentTime - _previousCompute);
-                    double rollSpeed = (roll - _previousRoll) / (currentTime - _previousCompute);
-                    double correctionPitch = _commandPitch - pitch;
-                    double correctionRoll = _commandRoll - roll;
-                    
-                    if (correctionPitch > PITCH_MIN_STEP)
-                    {
-                        // il faut rajouter du pitch
-                        if (pitchSpeed <= -3.0)
-                        {
-                            // on est en train d'en enlever beaucoup => augmente la balance beaucoup
-                            _pitchCmd += 0.50f;
-                        }
-                        else if (pitchSpeed <= 0.0)
-                        {
-                            // on est en train d'en enlever => augmente la balance
-                            _pitchCmd += 0.10f;
-                        }
-                        else if (pitchSpeed >= 2.0)
-                        {
-                            // on est en train d'en rajouter trop vite => diminue la balance
-                            _pitchCmd -= 0.05f;
-                        }
-                    }
-                    else if (correctionPitch < -PITCH_MIN_STEP)
-                    {
-                        // il faut enlever du pitch
-                        if (pitchSpeed >= 3.0)
-                        {
-                            // on est en train d'en rajouter beaucoup => diminue la balance beaucoup
-                            _pitchCmd -= 0.50f;
-                        }
-                        else if (pitchSpeed >= 0.0)
-                        {
-                            // on est en train d'en rajouter => diminue la balance
-                            _pitchCmd -= 0.10f;
-                        }
-                        else if (pitchSpeed <= -2.0)
-                        {
-                            // on est en train d'en enlever trop vite => augmente la balance
-                            _pitchCmd += 0.05f;
-                        }
-                    }
-                    else
-                    {
-                        // on est dans la marge. On annule la balance
-                        _pitchCmd = 0.0f;
-                    }
-                    if (correctionRoll > ROLL_MIN_STEP)
-                    {
-                        // il faut rajouter du roll
-                        if (rollSpeed <= -3.0)
-                        {
-                            // on est en train d'en enlever beaucoup => augmente la balance beaucoup
-                            _rollCmd += 0.50f;
-                        }
-                        else if (rollSpeed <= 0.0)
-                        {
-                            // on est en train d'en enlever => augmente la balance
-                            _rollCmd += 0.10f;
-                        }
-                        else if (rollSpeed >= 2.0)
-                        {
-                            // on est en train d'en rajouter trop vite => diminue la balance
-                            _rollCmd -= 0.05f;
-                        }
-                    }
-                    else if (correctionRoll < -ROLL_MIN_STEP)
-                    {
-                        // il faut enlever du pitch
-                        if (rollSpeed >= 3.0)
-                        {
-                            // on est en train d'en rajouter beaucoup => diminue la balance beaucoup
-                            _rollCmd -= 0.50f;
-                        }
-                        else if (rollSpeed >= 0.0)
-                        {
-                            // on est en train d'en rajouter => diminue la balance
-                            _rollCmd -= 0.10f;
-                        }
-                        else if (rollSpeed <= -2.0)
-                        {
-                            // on est en train d'en enlever trop vite => augmente la balance
-                            _rollCmd += 0.05f;
-                        }
-                    }
-                    else
-                    {
-                        // on est dans la marge. On annule la balance
-                        _rollCmd = 0.0f;
-                    }
-                }
-                _previousCompute = currentTime;
-                _previousPitch = pitch;
-                _previousRoll = roll;*/
-                _pitchCmd = 0.0f;
-                _rollCmd = 0.0f;
             }
             else
             {
-                _pitchCmd = 0.0f;
-                _rollCmd = 0.0f;
-                _previousCompute = 0.0f;
                 _pidCtrlAttitude.ResetPID();
             }
             
-            _throttleCmd = Mathf.Clamp(_throttleCmd, 0.0f, 100.0f);
-            _pitchCmd = Mathf.Clamp(_pitchCmd, -20.0f, 20.0f);
-            _rollCmd = Mathf.Clamp(_rollCmd, -20.0f, 20.0f);
-            _config.SetCommand(_throttleCmd, _pitchCmd, _rollCmd);
+            throttleCmd = Mathf.Clamp(throttleCmd, 0.0f, 100.0f);
+            pitchCmd = Mathf.Clamp(pitchCmd, -20.0f, 20.0f);
+            rollCmd = Mathf.Clamp(rollCmd, -20.0f, 20.0f);
+            _config.SetCommand(throttleCmd, pitchCmd, rollCmd);
         }
-        
     }
     
     public class PidController
 	{
 		private float _kp, _ki, _kd; // proportional, integral, derivative
 		private Vector3 _pError, _iError, _dError;
+        private float _min, _max;
 
 		public PidController(float kp, float ki, float kd)
 		{
@@ -404,6 +311,20 @@ namespace KspVtol
 			_pError = Vector3.zero;
 			_iError = Vector3.zero;
 			_dError = Vector3.zero;
+            _min = -1.0f;
+            _max = 1.0f;
+		}
+        
+        public PidController(float kp, float ki, float kd, float min, float max)
+		{
+			_kp = kp;
+			_ki = ki;
+			_kd = kd;
+			_pError = Vector3.zero;
+			_iError = Vector3.zero;
+			_dError = Vector3.zero;
+            _min = min;
+            _max = max;
 		}
         
 		public Vector3 Compute(Vector3 error)
@@ -413,9 +334,9 @@ namespace KspVtol
 
 			Vector3 result = _kp * error + _ki * _iError + _kd * _dError;
 
-			Vector3 clampedResult = new Vector3(Mathf.Clamp(result.x, -1.0f, 1.0f),
-			                                    Mathf.Clamp(result.y, -1.0f, 1.0f),
-			                                    Mathf.Clamp(result.z, -1.0f, 1.0f));
+			Vector3 clampedResult = new Vector3(Mathf.Clamp(result.x, _min, _max),
+			                                    Mathf.Clamp(result.y, _min, _max),
+			                                    Mathf.Clamp(result.z, _min, _max));
 
 			if (Math.Abs((clampedResult - result).magnitude) > 0.01)
             {
