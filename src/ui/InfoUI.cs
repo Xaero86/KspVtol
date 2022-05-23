@@ -9,42 +9,51 @@ namespace KspVtol
         private Rect _windowRect = Rect.zero;
         private Vector2 _size = new Vector2(300, 150);
         private bool _isDisplayed = false;
-        public bool IsDisplayed
+        public void ToggleDisplay()
         {
-            get { return _isDisplayed; }
+            _isDisplayed = !_isDisplayed;
+            // hide lines
+            _lineDisplayed = false;
+        }
+        private bool _lineDisplayedVal = false;
+        private bool _lineDisplayed
+        {
+            get { return _lineDisplayedVal; }
             set
             {
-                _isDisplayed = value;
-                foreach(GameObject objLine in _lines.Values)
+                if (_lineDisplayedVal != value)
                 {
-                    objLine.SetActive(_isDisplayed);
-                    if (_isDisplayed)
+                    // active/deactive parent object of line
+                    _lineDisplayedVal = value;
+                    foreach(GameObject objLine in _lines.Values)
                     {
-                        LineRenderer line = objLine.GetComponent<LineRenderer>(); 
-                        line.transform.parent = FlightGlobals.ActiveVessel.transform;
-                        line.transform.localPosition = Vector3.zero;
-                        line.transform.localEulerAngles = Vector3.zero; 
+                        objLine.SetActive(_lineDisplayedVal);
+                        if (_lineDisplayedVal)
+                        {
+                            LineRenderer line = objLine.GetComponent<LineRenderer>(); 
+                            line.transform.parent = FlightGlobals.ActiveVessel.transform;
+                            line.transform.localPosition = Vector3.zero;
+                            line.transform.localEulerAngles = Vector3.zero; 
+                        }
                     }
                 }
             }
         }
-        public void ToggleDisplay()
-        {
-            IsDisplayed = !_isDisplayed;
-        }
         private Rect _boxPos = Rect.zero;
         private Vector2 _scrollConfVector = Vector2.zero;
         
+        // Textual info: delegate function that return 2 string: info title and info value
         public delegate Tuple<string,string> InfoHandler();
         private List<InfoHandler> _infoList = new List<InfoHandler>();
-        
         public void AddInfo(InfoHandler handler)
         {
             _infoList.Add(handler);
         }
         
+        // Vectorial info
         private Dictionary<string,GameObject> _lines = new Dictionary<string,GameObject>();
-        
+        private Material _lineMaterial = null;
+        // Create vector info with name as key. Vector direction is set by DisplayInfoLine
         public void CreateInfoLine(string name, Color color)
         {
             if (!_lines.ContainsKey(name))
@@ -70,6 +79,7 @@ namespace KspVtol
             }
         }
         
+        // Configure vector direction
         public void DisplayInfoLine(string name, Vector3 direction)
         {
             GameObject objLine = null;
@@ -80,8 +90,6 @@ namespace KspVtol
                 line.SetPosition(1, direction.normalized * 5);
             }
         }
-        
-        private Material _lineMaterial = null;
         
         public InfoUI(Vector2 pos)
         {
@@ -105,10 +113,12 @@ namespace KspVtol
             
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
+            _lineDisplayed = GUILayout.Toggle(_lineDisplayed, "Show vectors");
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("X"))
             {
                 _isDisplayed = false;
+                _lineDisplayed = false;
             }
             GUILayout.EndHorizontal();
             

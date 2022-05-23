@@ -11,7 +11,7 @@ namespace KspVtol
         public float verticalMax
         {
             get { return _verticalMax; }
-            set { if ((value >= 2.0f) && (value <= 200.0f)) _verticalMax = value; }
+            set { if ((value >= 2.0f) && (value <= 1000.0f)) _verticalMax = value; }
         }
         
         private float _pitchMax = 20.0f;
@@ -48,7 +48,7 @@ namespace KspVtol
         }
         
         private List<PartElement> _partsList = new List<PartElement>();
-        public List<PartElement> PartsList { get { return _partsList;} }
+        public List<PartElement> PartsList { get { return _partsList; } }
         
         public void AddPart(Part part)
         {
@@ -102,15 +102,17 @@ namespace KspVtol
         private bool _isIndependent = false;
         
         public PartElement(Part part)
-        {Vessel vessel = FlightGlobals.ActiveVessel;
+        {
             _part = part;
             if (_part != null)
             {
+                // only engine or motor part
                 _module = (PartModule) _part.FindModuleImplementing<ModuleEngines>();
                 if (_module == null)
                 {
                     _module = (PartModule) _part.FindModuleImplementing<ModuleRoboticServoRotor>();
                 }
+                // store position of part in vessel local space. It will never change
                 _position = FlightGlobals.ActiveVessel.transform.InverseTransformPoint(_part.transform.position);
             }
         }
@@ -160,59 +162,45 @@ namespace KspVtol
         {
             float inputCmd = throttleP;
             
+            // Use differential thrust
             if ((pitchP != 0.0f) || (rollP != 0.0f))
             {
                 Vessel vessel = FlightGlobals.ActiveVessel;
+                // COM can change during flight. Get current value
                 Vector3 posCoM = vessel.transform.InverseTransformPoint(vessel.CoM);
                 
+                float pitchLever = 0.0f;
+                float rollLever = 0.0f;
                 if (isAirplane)
                 {
-                    if (Math.Abs(_position.y - posCoM.y) > 0.5f)
-                    {
-                        if (_position.y > posCoM.y)
-                        {
-                            inputCmd += pitchP;
-                        }
-                        else
-                        {
-                            inputCmd -= pitchP;
-                        }
-                    }
-                    if (Math.Abs(_position.x - posCoM.x) > 0.5f)
-                    {
-                        if (_position.x > posCoM.x)
-                        {
-                            inputCmd -= rollP;
-                        }
-                        else
-                        {
-                            inputCmd += rollP;
-                        }
-                    }
+                    pitchLever = _position.y - posCoM.y;
+                    rollLever = _position.x - posCoM.x;
                 }
                 else
                 {
-                    if (Math.Abs(_position.z - posCoM.z) > 0.5f)
+                    pitchLever = _position.z - posCoM.z;
+                    rollLever = _position.x - posCoM.x;
+                }
+                if (Math.Abs(pitchLever) > 0.5f)
+                {
+                    if (pitchLever > 0.0f)
                     {
-                        if (_position.z > posCoM.z)
-                        {
-                            inputCmd += pitchP;
-                        }
-                        else
-                        {
-                            inputCmd -= pitchP;
-                        }
+                        inputCmd += pitchP;
                     }
-                    if (Math.Abs(_position.x - posCoM.x) > 0.5f)
+                    else
                     {
-                        if (_position.x > posCoM.x)
-                        {
-                            inputCmd -= rollP;
-                        }
-                        else
-                        {
-                            inputCmd += rollP;
-                        }
+                        inputCmd -= pitchP;
+                    }
+                }
+                if (Math.Abs(rollLever) > 0.5f)
+                {
+                    if (rollLever > 0.0f)
+                    {
+                        inputCmd -= rollP;
+                    }
+                    else
+                    {
+                        inputCmd += rollP;
                     }
                 }
             }

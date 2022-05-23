@@ -50,12 +50,12 @@ namespace KspVtol
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Configure"))
             {
-                _mainVtol.ToggleConf();
+                _mainVtol.ToggleConfUI();
             }
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Info"))
             {
-                _mainVtol.ToggleInfo();
+                _mainVtol.ToggleInfoUI();
             }
             GUILayout.FlexibleSpace();
             _core.active = GUILayout.Toggle(_core.active, "Activate");

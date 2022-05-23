@@ -11,11 +11,10 @@ namespace KspVtol
     {
         public const string DEBUG_PREFIX = "[Vtol] ";
         private static string ICON_FILE_NAME = "button.png";
-        private static string ADDON_BASE_PATH = null;
-        private static string ICON_FILE = null;
+        
         private static Texture2D TEXTURE_BUTTON = null;
-
         private ApplicationLauncherButton _mainButton = null;
+        
         private bool _displayWindow = false;
         
         // UI
@@ -31,10 +30,10 @@ namespace KspVtol
             if (TEXTURE_BUTTON == null)
             {
                 TEXTURE_BUTTON = new Texture2D(1, 1);
-                ADDON_BASE_PATH = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..");
-                ICON_FILE = Path.Combine(ADDON_BASE_PATH, ICON_FILE_NAME);
+                string addonPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..");
+                string iconFile = Path.Combine(addonPath, ICON_FILE_NAME);
                 try {
-                    byte[] bytes = File.ReadAllBytes(ICON_FILE);
+                    byte[] bytes = File.ReadAllBytes(iconFile);
                     TEXTURE_BUTTON.LoadImage(bytes);
                 } catch (Exception e) {
                     Debug.LogError(DEBUG_PREFIX + e.Message);
@@ -75,23 +74,18 @@ namespace KspVtol
         {
             if (_displayWindow)
             {
-                _infoUI.Display();
                 _configUI.Display();
                 _commandUI.Display();
             }
-            else
-            {
-                _configUI.IsDisplayed = false;
-                _infoUI.IsDisplayed = false;
-            }   
+            _infoUI.Display();
         }
         
-        public void ToggleConf()
+        public void ToggleConfUI()
         {
             _configUI.ToggleDisplay();
         }
         
-        public void ToggleInfo()
+        public void ToggleInfoUI()
         {
             _infoUI.ToggleDisplay();
         }

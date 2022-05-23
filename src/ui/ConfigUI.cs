@@ -6,24 +6,22 @@ namespace KspVtol
 {
     public class ConfigUI
     {
+        // Constante UI properties that should be initialized during DoWindow function
+        private static bool INITIALIZED = false;
         private static GUIStyle BUTTON_ACTIVE_STYLE = null;
         private static GUIStyle BUTTON_DEACTIVE_STYLE = null;
+        private static float LABEL_WIDTH = 0.0f;
+        private static float LABEL_WIDTH_2 = 0.0f;
+        private static float LABEL_WIDTH_3 = 0.0f;
         
+        // UI properties
         private Rect _windowRect = Rect.zero;
         private Vector2 _size = new Vector2(500, 200);
         private bool _isDisplayed = false;
-        public bool IsDisplayed
-        {
-            get { return _isDisplayed; }
-            set
-            {
-                _isDisplayed = value;
-                UpdateSelector(false);
-            }
-        }
         public void ToggleDisplay()
         {
-            IsDisplayed = !_isDisplayed;
+            _isDisplayed = !_isDisplayed;
+            UpdateSelector(false);
         }
         
         private Rect _boxPos = Rect.zero;
@@ -38,6 +36,7 @@ namespace KspVtol
         private string _pitchMax = "";
         private string _rollMax = "";
         
+        // TextField ID
         private static string TF_NAME_V_SPEED_MAX = "vSpeedMaxTF";
         private static string TF_NAME_PITCH_MAX = "pitchMaxTF";
         private static string TF_NAME_ROLL_MAX = "rollMaxTF";
@@ -71,20 +70,18 @@ namespace KspVtol
         
         private void DoWindow(int windowID)
         {
-            if (BUTTON_ACTIVE_STYLE == null)
+            if (!INITIALIZED)
             {
                 BUTTON_ACTIVE_STYLE = new GUIStyle(GUI.skin.button);
-            }
-            if (BUTTON_DEACTIVE_STYLE == null)
-            {
                 BUTTON_DEACTIVE_STYLE = new GUIStyle(GUI.skin.button);
                 BUTTON_DEACTIVE_STYLE.normal.textColor = Color.red;
                 BUTTON_DEACTIVE_STYLE.hover.textColor = Color.red;
+                LABEL_WIDTH = GUI.skin.label.CalcSize(new GUIContent("XXXXXXXXXXXX")).x;
+                LABEL_WIDTH_2 = GUI.skin.label.CalcSize(new GUIContent("XXXXXXX")).x;
+                LABEL_WIDTH_3 = GUI.skin.label.CalcSize(new GUIContent("XXX")).x;
+                INITIALIZED = true;
             }
             
-            float labelWidth = GUI.skin.label.CalcSize(new GUIContent("XXXXXXXXXXXX")).x;
-            float labelWidth2 = GUI.skin.label.CalcSize(new GUIContent("XXXXXXX")).x;
-            float labelWidth3 = GUI.skin.label.CalcSize(new GUIContent("XXX")).x;
             List<PartElement> removed = new List<PartElement>();
             
             GUILayout.BeginVertical();
@@ -107,9 +104,9 @@ namespace KspVtol
             {
                 Rect lastRect = GUILayoutUtility.GetLastRect();
                 RectOffset rctOff = GUI.skin.button.margin;
-                _boxPos = new Rect(2 * labelWidth + rctOff.left,
+                _boxPos = new Rect(2 * LABEL_WIDTH + rctOff.left,
                                 lastRect.y+lastRect.height+rctOff.top,
-                                _windowRect.width-rctOff.horizontal - 2 * labelWidth,
+                                _windowRect.width-rctOff.horizontal - 2 * LABEL_WIDTH,
                                 _windowRect.height-(lastRect.y+lastRect.height+rctOff.vertical));
             }
             GUILayout.BeginHorizontal();
@@ -120,7 +117,7 @@ namespace KspVtol
             {
                 GUILayout.BeginHorizontal();
                 // Name
-                GUILayout.Label(partElem.ToString(), GUILayout.Width(labelWidth));
+                GUILayout.Label(partElem.ToString(), GUILayout.Width(LABEL_WIDTH));
                 GUILayout.FlexibleSpace();
                 // Remove
                 if (GUILayout.Button("Remove"))
@@ -134,21 +131,21 @@ namespace KspVtol
             
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            GUILayout.Label("V speed max:", GUILayout.Width(labelWidth));
+            GUILayout.Label("V speed max:", GUILayout.Width(LABEL_WIDTH));
             GUI.SetNextControlName(TF_NAME_V_SPEED_MAX);
-            _vSpeedMax = GUILayout.TextField(_vSpeedMax, 25, GUILayout.Width(labelWidth2));
+            _vSpeedMax = GUILayout.TextField(_vSpeedMax, 25, GUILayout.Width(LABEL_WIDTH_2));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Pitch max °:", GUILayout.Width(labelWidth));
+            GUILayout.Label("Pitch max °:", GUILayout.Width(LABEL_WIDTH));
             GUI.SetNextControlName(TF_NAME_PITCH_MAX);
-            _pitchMax = GUILayout.TextField(_pitchMax, 25, GUILayout.Width(labelWidth2));
+            _pitchMax = GUILayout.TextField(_pitchMax, 25, GUILayout.Width(LABEL_WIDTH_2));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Roll max °:", GUILayout.Width(labelWidth));
+            GUILayout.Label("Roll max °:", GUILayout.Width(LABEL_WIDTH));
             GUI.SetNextControlName(TF_NAME_ROLL_MAX);
-            _rollMax = GUILayout.TextField(_rollMax, 25, GUILayout.Width(labelWidth2));
+            _rollMax = GUILayout.TextField(_rollMax, 25, GUILayout.Width(LABEL_WIDTH_2));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
@@ -157,25 +154,26 @@ namespace KspVtol
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             
+            // PID coef
             /*GUILayout.BeginHorizontal();
             GUILayout.Label("v");
             GUI.SetNextControlName(TF_NAME_V_KP);
-            _vkp = GUILayout.TextField(_vkp, 5, GUILayout.Width(labelWidth3));
+            _vkp = GUILayout.TextField(_vkp, 5, GUILayout.Width(LABEL_WIDTH_3));
             GUI.SetNextControlName(TF_NAME_V_KI);
-            _vki = GUILayout.TextField(_vki, 5, GUILayout.Width(labelWidth3));
+            _vki = GUILayout.TextField(_vki, 5, GUILayout.Width(LABEL_WIDTH_3));
             GUI.SetNextControlName(TF_NAME_V_KD);
-            _vkd = GUILayout.TextField(_vkd, 5, GUILayout.Width(labelWidth3));
+            _vkd = GUILayout.TextField(_vkd, 5, GUILayout.Width(LABEL_WIDTH_3));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
             
             GUILayout.BeginHorizontal();
             GUILayout.Label("a");
             GUI.SetNextControlName(TF_NAME_A_KP);
-            _akp = GUILayout.TextField(_akp, 5, GUILayout.Width(labelWidth3));
+            _akp = GUILayout.TextField(_akp, 5, GUILayout.Width(LABEL_WIDTH_3));
             GUI.SetNextControlName(TF_NAME_A_KI);
-            _aki = GUILayout.TextField(_aki, 5, GUILayout.Width(labelWidth3));
+            _aki = GUILayout.TextField(_aki, 5, GUILayout.Width(LABEL_WIDTH_3));
             GUI.SetNextControlName(TF_NAME_A_KD);
-            _akd = GUILayout.TextField(_akd, 5, GUILayout.Width(labelWidth3));
+            _akd = GUILayout.TextField(_akd, 5, GUILayout.Width(LABEL_WIDTH_3));
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();*/
             
